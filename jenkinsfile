@@ -1,8 +1,8 @@
 pipeline {
     environment {
         SONAR_TOKEN = credentials('sonarcloud-token')
-        SONAR_ORG = 'your-organization-key'  // La organización configurada en SonarCloud
-        SONAR_PROJECT = 'your-project-key'   // El Project Key copiado de SonarCloud
+        SONAR_ORG = 'Pipeline-Jenkins'  // La organización configurada en SonarCloud
+        SONAR_PROJECT = 'Repo-SonarCloud-Dependecy-check'   // El Project Key copiado de SonarCloud
     }
 
     stages {
