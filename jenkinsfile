@@ -1,0 +1,68 @@
+pipeline {
+    agent any
+
+    environment {
+        SONAR_TOKEN = credentials('sonarcloud-token')  // Configura tu token en Jenkins con el ID 'sonarcloud-token'
+        SONAR_ORG = 'your-sonarcloud-org'              // La organización de SonarCloud
+        SONAR_PROJECT = 'your-sonarcloud-project'      // El proyecto en SonarCloud
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                // Descargamos el código desde el repositorio
+                git url: 'https://github.com/usuario/proyecto.git'
+            }
+        }
+
+        stage('Compile') {
+            steps {
+                // Aquí puedes ajustar el comando de compilación según tu proyecto (ejemplo: Maven, Gradle, NPM, etc.)
+                sh 'mvn clean compile'
+            }
+        }
+
+        stage('SonarCloud Analysis') {
+            steps {
+                withSonarQubeEnv('SonarCloud') {  // Asegúrate de tener configurado "SonarCloud" como instalación en Jenkins
+                    sh '''
+                    mvn sonar:sonar \
+                        -Dsonar.organization=$SONAR_ORG \
+                        -Dsonar.projectKey=$SONAR_PROJECT \
+                        -Dsonar.login=$SONAR_TOKEN
+                    '''
+                }
+            }
+        }
+
+        stage('OWASP Dependency-Check') {
+            steps {
+                dependencyCheck additionalArguments: '--project "My Project" --scan ./', odcInstallation: 'Dependency-Check'
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                // Verificamos si el análisis de SonarCloud pasó el Quality Gate
+                script {
+                    def qg = waitForQualityGate()
+                    if (qg.status != 'OK') {
+                        error "La calidad del código no pasó el Quality Gate: ${qg.status}"
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Aquí puedes agregar acciones que ocurrirán siempre, como la limpieza de archivos temporales o la notificación
+            cleanWs()
+        }
+        failure {
+            mail to: 'team@example.com',
+                 subject: "Pipeline falló: ${currentBuild.fullDisplayName}",
+                 body: "Revisar el pipeline ${env.BUILD_URL}"
+        }
+    }
+}
