@@ -1,11 +1,23 @@
 pipeline {
-    agent any
-
     environment {
-        SONAR_TOKEN = credentials('sonarcloud-token')  // Configura tu token en Jenkins con el ID 'sonarcloud-token'
-        SONAR_ORG = 'your-sonarcloud-org'              // La organización de SonarCloud
-        SONAR_PROJECT = 'your-sonarcloud-project'      // El proyecto en SonarCloud
+        SONAR_TOKEN = credentials('sonarcloud-token')  // El ID que configuraste en Jenkins
     }
+
+    stages {
+        stage('SonarCloud Analysis') {
+            steps {
+                withSonarQubeEnv('SonarCloud') {
+                    sh '''
+                    mvn sonar:sonar \
+                        -Dsonar.organization=your-organization \
+                        -Dsonar.projectKey=your-project-key \
+                        -Dsonar.login=$SONAR_TOKEN
+                    '''
+                }
+            }
+        }
+    }
+}
 
     stages {
         stage('Checkout') {
