@@ -26,7 +26,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 // Descargamos el código desde el repositorio
-                git url: 'https://github.com/usuario/proyecto.git'
+                git url: 'https://github.com/lucaseveron/Repo-SonarCloud-Dependecy-check.git'
             }
         }
 
