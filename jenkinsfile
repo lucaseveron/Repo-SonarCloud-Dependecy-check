@@ -2,9 +2,10 @@ pipeline {
     agent any
 
     environment {
-        SONAR_TOKEN = credentials('sonarcloud-token')
-        SONAR_ORG = 'your-organization-key'
-        SONAR_PROJECT = 'your-project-key'
+        // Definir variables de entorno necesarias para SonarCloud
+        SONAR_TOKEN = credentials('sonarcloud-token')  // Credenciales almacenadas en Jenkins
+        SONAR_ORG = 'your-organization-key'            // Clave de organización de SonarCloud
+        SONAR_PROJECT = 'your-project-key'             // Clave de proyecto de SonarCloud
     }
 
     stages {
@@ -12,11 +13,13 @@ pipeline {
             steps {
                 sh '''
                 #!/bin/bash
+                # Verificar si las variables de entorno están definidas
                 if [ -z "$SONAR_ORG" ] || [ -z "$SONAR_PROJECT" ] || [ -z "$SONAR_TOKEN" ]; then
                   echo "Error: Las variables de entorno SONAR_ORG, SONAR_PROJECT o SONAR_TOKEN no están definidas."
                   exit 1
                 fi
 
+                # Ejecutar análisis con SonarCloud
                 mvn sonar:sonar \
                   -Dsonar.organization="$SONAR_ORG" \
                   -Dsonar.projectKey="$SONAR_PROJECT" \
@@ -24,16 +27,18 @@ pipeline {
                 '''
             }
         }
-    }
-}
+
         stage('OWASP Dependency-Check') {
             steps {
+                // Ejecutar el análisis de dependencias con OWASP Dependency-Check
                 dependencyCheck additionalArguments: '--project "My Project" --scan ./', odcInstallation: 'Dependency-Check'
             }
         }
+
         stage('Quality Gate') {
             steps {
                 script {
+                    // Verificar si se pasó el Quality Gate de SonarCloud
                     def qg = waitForQualityGate()
                     if (qg.status != 'OK') {
                         error "La calidad del código no pasó el Quality Gate: ${qg.status}"
@@ -42,7 +47,9 @@ pipeline {
             }
         }
     }
+
     post {
+        // Limpieza del workspace al final de la ejecución
         always {
             cleanWs()
         }
