@@ -1,8 +1,8 @@
 pipeline {
     environment {
         SONAR_TOKEN = credentials('sonarcloud-token')
-        SONAR_ORG = 'your-organization-key'
-        SONAR_PROJECT = 'your-project-key'
+        SONAR_ORG = 'Pipeline-Jenkins'
+        SONAR_PROJECT = 'Repo-SonarCloud-Dependecy-check'
     }
 
     agent any
