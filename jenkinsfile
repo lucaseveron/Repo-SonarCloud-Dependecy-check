@@ -4,8 +4,14 @@ pipeline {
         SONAR_ORG = 'Pipeline-Jenkins'  // La organización configurada en SonarCloud
         SONAR_PROJECT = 'Repo-SonarCloud-Dependecy-check'   // El Project Key copiado de SonarCloud
     }
+    agent any
 
     stages {
+        stage('Checkout') {
+            steps {
+                git url: 'https://github.com/lucaseveron/Repo-SonarCloud-Dependecy-check.git'
+            }
+        }
         stage('SonarCloud Analysis') {
             steps {
                 withSonarQubeEnv('SonarCloud') {
@@ -18,47 +24,13 @@ pipeline {
                 }
             }
         }
-    }
-}
-
-
-    stages {
-        stage('Checkout') {
-            steps {
-                // Descargamos el código desde el repositorio
-                git url: 'https://github.com/lucaseveron/Repo-SonarCloud-Dependecy-check.git'
-            }
-        }
-
-        stage('Compile') {
-            steps {
-                // Aquí puedes ajustar el comando de compilación según tu proyecto (ejemplo: Maven, Gradle, NPM, etc.)
-                sh 'mvn clean compile'
-            }
-        }
-
-        stage('SonarCloud Analysis') {
-            steps {
-                withSonarQubeEnv('SonarCloud') {  // Asegúrate de tener configurado "SonarCloud" como instalación en Jenkins
-                    sh '''
-                    mvn sonar:sonar \
-                        -Dsonar.organization=$SONAR_ORG \
-                        -Dsonar.projectKey=$SONAR_PROJECT \
-                        -Dsonar.login=$SONAR_TOKEN
-                    '''
-                }
-            }
-        }
-
         stage('OWASP Dependency-Check') {
             steps {
                 dependencyCheck additionalArguments: '--project "My Project" --scan ./', odcInstallation: 'Dependency-Check'
             }
         }
-
         stage('Quality Gate') {
             steps {
-                // Verificamos si el análisis de SonarCloud pasó el Quality Gate
                 script {
                     def qg = waitForQualityGate()
                     if (qg.status != 'OK') {
@@ -68,16 +40,9 @@ pipeline {
             }
         }
     }
-
     post {
         always {
-            // Aquí puedes agregar acciones que ocurrirán siempre, como la limpieza de archivos temporales o la notificación
             cleanWs()
-        }
-        failure {
-            mail to: 'team@example.com',
-                 subject: "Pipeline falló: ${currentBuild.fullDisplayName}",
-                 body: "Revisar el pipeline ${env.BUILD_URL}"
         }
     }
 }
