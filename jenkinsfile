@@ -1,34 +1,31 @@
 pipeline {
-    environment {
-        SONAR_TOKEN = credentials('sonarcloud-token')
-        SONAR_ORG = 'Pipeline-Jenkins'
-        SONAR_PROJECT = 'Repo-SonarCloud-Dependecy-check'
-    }
-
     agent any
 
-    tools {
-        maven 'Maven'  // Nombre de la instalación de Maven que configuraste en Jenkins
+    environment {
+        SONAR_TOKEN = credentials('sonarcloud-token')
+        SONAR_ORG = 'your-organization-key'
+        SONAR_PROJECT = 'your-project-key'
     }
 
     stages {
-        stage('Checkout') {
-            steps {
-                git url: 'https://github.com/lucaseveron/Repo-SonarCloud-Dependecy-check.git'
-            }
-        }
         stage('SonarCloud Analysis') {
             steps {
-                withSonarQubeEnv('SonarCloud') {
-                    sh '''
-                    mvn sonar:sonar \
-                        -Dsonar.organization=$SONAR_ORG \
-                        -Dsonar.projectKey=$SONAR_PROJECT \
-                        -Dsonar.login=$SONAR_TOKEN
-                    '''
-                }
+                sh '''
+                #!/bin/bash
+                if [ -z "$SONAR_ORG" ] || [ -z "$SONAR_PROJECT" ] || [ -z "$SONAR_TOKEN" ]; then
+                  echo "Error: Las variables de entorno SONAR_ORG, SONAR_PROJECT o SONAR_TOKEN no están definidas."
+                  exit 1
+                fi
+
+                mvn sonar:sonar \
+                  -Dsonar.organization="$SONAR_ORG" \
+                  -Dsonar.projectKey="$SONAR_PROJECT" \
+                  -Dsonar.login="$SONAR_TOKEN"
+                '''
             }
         }
+    }
+}
         stage('OWASP Dependency-Check') {
             steps {
                 dependencyCheck additionalArguments: '--project "My Project" --scan ./', odcInstallation: 'Dependency-Check'
