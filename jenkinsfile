@@ -2,8 +2,7 @@ pipeline {
     agent any
     
     environment {
-        SONAR_LOGIN = credentials('sonarcloud-token')  // Definir el token en el sistema de credenciales de Jenkins
-        sh 'sonar-scanner -Dsonar.login=${SONAR_LOGIN}'
+    SONAR_LOGIN = credentials('sonarcloud-token')  // 'sonarcloud-token' es el ID del token almacenado en Jenkins
     }
 
     stages {
@@ -37,7 +36,8 @@ pipeline {
                 echo 'Compilando y desplegando...'
                 // Aquí se continuarían las siguientes etapas del pipeline
                 sh 'mvn clean package'
-            }
+            }pipeline {
+    agent any
         }
     }
 
@@ -50,3 +50,4 @@ pipeline {
         }
     }
 }
+
