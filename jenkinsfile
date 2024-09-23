@@ -1,68 +1,51 @@
 pipeline {
     agent any
-
+    
     environment {
-        SONAR_TOKEN = credentials('sonarcloud-token')  // Configura tu token en Jenkins con el ID 'sonarcloud-token'
-        SONAR_ORG = 'your-sonarcloud-org'              // La organización de SonarCloud
-        SONAR_PROJECT = 'your-sonarcloud-project'      // El proyecto en SonarCloud
+        SONAR_LOGIN = credentials('sonarcloud-token')  // Definir el token en el sistema de credenciales de Jenkins
     }
 
     stages {
         stage('Checkout') {
             steps {
-                // Descargamos el código desde el repositorio
-                git url: 'https://github.com/usuario/proyecto.git'
-            }
-        }
-
-        stage('Compile') {
-            steps {
-                // Aquí puedes ajustar el comando de compilación según tu proyecto (ejemplo: Maven, Gradle, NPM, etc.)
-                sh 'mvn clean compile'
+                git branch: 'main', url: 'https://github.com/tu-empresa/proyecto.git'
             }
         }
 
         stage('SonarCloud Analysis') {
             steps {
-                withSonarQubeEnv('SonarCloud') {  // Asegúrate de tener configurado "SonarCloud" como instalación en Jenkins
-                    sh '''
-                    mvn sonar:sonar \
-                        -Dsonar.organization=$SONAR_ORG \
-                        -Dsonar.projectKey=$SONAR_PROJECT \
-                        -Dsonar.login=$SONAR_TOKEN
-                    '''
+                echo 'Realizando análisis de SonarCloud...'
+                // Ejecutar el SonarQube Scanner con el archivo sonar-project.properties
+                withSonarQubeEnv('SonarCloud') {  // Nombre configurado en Jenkins
+                    sh 'sonar-scanner -Dsonar.login=${SONAR_LOGIN}'
                 }
-            }
-        }
-
-        stage('OWASP Dependency-Check') {
-            steps {
-                dependencyCheck additionalArguments: '--project "My Project" --scan ./', odcInstallation: 'Dependency-Check'
             }
         }
 
         stage('Quality Gate') {
             steps {
-                // Verificamos si el análisis de SonarCloud pasó el Quality Gate
-                script {
-                    def qg = waitForQualityGate()
-                    if (qg.status != 'OK') {
-                        error "La calidad del código no pasó el Quality Gate: ${qg.status}"
-                    }
+                echo 'Verificando Quality Gate...'
+                timeout(time: 1, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
                 }
+            }
+        }
+        
+        stage('Build and Deploy') {
+            steps {
+                echo 'Compilando y desplegando...'
+                // Aquí se continuarían las siguientes etapas del pipeline
+                sh 'mvn clean package'
             }
         }
     }
 
     post {
-        always {
-            // Aquí puedes agregar acciones que ocurrirán siempre, como la limpieza de archivos temporales o la notificación
-            cleanWs()
+        success {
+            echo 'Pipeline completado exitosamente con análisis de SonarCloud!'
         }
         failure {
-            mail to: 'team@example.com',
-                 subject: "Pipeline falló: ${currentBuild.fullDisplayName}",
-                 body: "Revisar el pipeline ${env.BUILD_URL}"
+            echo 'El pipeline falló.'
         }
     }
 }
