@@ -3,6 +3,7 @@ pipeline {
     
     environment {
         SONAR_LOGIN = credentials('sonarcloud-token')  // Definir el token en el sistema de credenciales de Jenkins
+        sh 'sonar-scanner -Dsonar.login=${SONAR_LOGIN}'
     }
 
     stages {
