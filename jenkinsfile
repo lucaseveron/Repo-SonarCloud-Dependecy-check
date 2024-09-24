@@ -1,51 +1,55 @@
 pipeline {
+    
     agent any
     
+    options {
+        buildDiscarder logRotator( 
+                    daysToKeepStr: '5', 
+                    numToKeepStr: '3'
+            )
+    }
+    
     environment {
-        SONAR_LOGIN = credentials('sonarcloud-token')  // Definir el token en el sistema de credenciales de Jenkins
+        GITHUB_PROJECT_URL = 'https://github.com/gastonbarbaccia/laravel_blog_v2'
+        SONAR_TOKEN = '78123793b7ad8f8acda0da7a47f130d577655e26'
+        SONAR_HOST_URL = 'https://sonarcloud.io/'
+        SONAR_PROJECT_KEY = 'Repo-SonarCloud-Dependecy-check'
+        SONAR_ORG='Pipeline-Jenkins'
+
     }
 
     stages {
+   
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/gastonbarbaccia/laravel_blog_v2.git'
-            }
-        }
-
-        stage('SonarCloud Analysis') {
-            steps {
-                echo 'Realizando análisis de SonarCloud...'
-                // Ejecutar el SonarQube Scanner con el archivo sonar-project.properties
-                withSonarQubeEnv('SonarCloud') {  // Nombre configurado en Jenkins
-                    sh 'sonar-scanner -Dsonar.login=${SONAR_LOGIN}'
-                }
-            }
-        }
-
-        stage('Quality Gate') {
-            steps {
-                echo 'Verificando Quality Gate...'
-                timeout(time: 1, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
+                // Asegúrate de que el uso de sudo sea necesario
+                sh("sudo rm -rf *")
+                git branch: 'main', url: "${GITHUB_PROJECT_URL}.git"
             }
         }
         
-        stage('Build and Deploy') {
+        
+        stage('SonarScanner - Scan') {
             steps {
-                echo 'Compilando y desplegando...'
-                // Aquí se continuarían las siguientes etapas del pipeline
-                sh 'mvn clean package'
+                script {
+                    try {
+                        sh '''
+                            sudo docker run \
+                            --rm \
+                            -e SONAR_HOST_URL="${SONAR_HOST_URL}" \
+                            -e SONAR_TOKEN="${SONAR_TOKEN}" \
+                            -v "$(pwd):/usr/src" \
+                            sonarsource/sonar-scanner-cli \
+                            -Dsonar.projectKey="${SONAR_PROJECT_KEY}" \
+                            -Dsonar.organization="${SONAR_ORG}"
+                        '''
+                    } catch (Exception e) {
+                        echo "Ocurrió un error: ${e.message}"
+                    }
+                }
             }
         }
+
     }
 
-    post {
-        success {
-            echo 'Pipeline completado exitosamente con análisis de SonarCloud!'
-        }
-        failure {
-            echo 'El pipeline falló.'
-        }
-    }
 }
